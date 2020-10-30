@@ -1,3 +1,5 @@
+import os
+import warnings
 from typing import Any
 from .openapi import openapi_yaml
 import flask
@@ -17,9 +19,10 @@ class Logger:
 
     OUTPUT_STYLES = {'plain', 'html'}
 
-    def __init__(self, style: str = 'plain'):
+    def __init__(self, style: str = 'plain', silent: bool = True):
         self.record = ''
         self.style = style
+        self.silent = True
         self._old_echo = None
 
     def __enter__(self):
@@ -67,7 +70,13 @@ class Logger:
             self._record_html(**kwargs)
         else:
             self._record_plain(**kwargs)
-        return self._old_echo(**kwargs)
+        if self.silent:
+            with open(os.devnull, 'w') as f:
+                kwargs['file'] = f
+                return self._old_echo(**kwargs)
+        else:
+            return self._old_echo(**kwargs)
+
 
 
 def _typecast(val, default):
@@ -151,6 +160,25 @@ class ClickRestful(object):
     ):
         self.app = None
         self.swagger = None
+        self.swagger_config = {
+            'headers': [],
+            'specs': [{
+                'endpoint': 'swagger',
+                'route': '/click_restful.json',
+                'rule_filter': lambda rule: True,
+                'model_filter': lambda tag: True,
+            }],
+            'static_url_path': '/flasgger_static',
+            'swagger_ui': True,
+            'specs_route': '/apidocs/'
+        }
+        self.template = {
+            'info': {
+                'title': 'Click RESTful App',
+                'description': '',
+                'version': '0.0',
+            }
+        }
         self.config_prefix = config_prefix
         if app:
             self.init_app(app)
@@ -159,16 +187,21 @@ class ClickRestful(object):
         self.app = app
         app.extensions.setdefault('click_restful', self)
 
-        from flasgger import Swagger
-        self.swagger = Swagger(app)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', category=DeprecationWarning)
+            from flasgger import Swagger
+
+        self.swagger = Swagger(
+            app, config=self.swagger_config, template=self.template)
 
 
-def create_click_app(cmd, **kwargs):
+def create_click_app(cmd=None, **kwargs):
     app = flask.Flask(__name__)
     click_rest = ClickRestful()
     click_rest.init_app(app)
-    bp = click_to_blueprint(cmd, **kwargs)
-    app.register_blueprint(bp)
+    if cmd:
+        bp = click_to_blueprint(cmd, **kwargs)
+        app.register_blueprint(bp)
 
     @app.route('/')
     def index():

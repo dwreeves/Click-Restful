@@ -16,12 +16,15 @@ setup(
     version=version,
     packages=find_packages(),
     author='Daniel Reeves',
-    python_requires='>=3.6.1',
+    python_requires='>=3.8.1',
     maintainer='Daniel Reeves',
     license='MIT',
     include_package_data=True,
     setup_requires=[],
-    tests_require=[],
+    tests_require=[
+        'pytest',
+        'schemathesis'
+    ],
     install_requires=[
         'flask',
         'click',
@@ -30,7 +33,7 @@ setup(
     ],
     extras_require={},
     url='https://github.com/dwreeves/Click-Restful',
-    description="Turn Click CLIs into Flask RESTful APIs",
+    description="Turn Click CLIs into Flask RESTful APIs.",
     long_description=readme,
     long_description_content_type='text/markdown',
 )

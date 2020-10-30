@@ -1,0 +1,6 @@
+-r docs.in
+-r tests.in
+click==7.1.2
+Flask==1.1.2
+PyYAML
+pip-tools

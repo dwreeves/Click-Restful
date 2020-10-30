@@ -16,26 +16,32 @@ def openapi_yaml(cmd: click.Command):
 
 def construct_json_specification(cmd: click.Command):
     return {
+        'tags': [cmd.name],
+        'summary': cmd.help,
         'parameters': all_parameters_to_oas(cmd),
-        'responses': {'200': {'schema': {'click_response': {
-            'description': 'DESC_GOES_HERE',
-            'type': 'object',
-            'required': ['status'],
-            'properties': {
-                'status': {
-                    'type': 'string',
-                    'enum': ['success', 'failure'],
-                    'description': 'Indication of whether the API call was a success or a failure.',
-                },
-                'return': {
-                    'description': 'Value from return statement.'
-                },
-                'stdout': {
-                    'type': 'string',
-                    'output': 'Output of `click.echo()` calls.'
+        'responses': {'200': {
+            'description': f'Output for {cmd.name!r}',
+            'schema': {
+                'id': 'click_response',
+                'description': f'Output for {cmd.name!r}!',
+                'required': ['status'],
+                'type': 'object',
+                'properties': {
+                    'status': {
+                        'type': 'string',
+                        'enum': ['success', 'failure'],
+                        'description': 'Indication of whether the API call was a success or a failure.',
+                    },
+                    'return': {
+                        'description': 'Value from return statement.'
+                    },
+                    'stdout': {
+                        'type': 'string',
+                        'description': 'Output of `click.echo()` calls.'
+                    }
                 }
             }
-        }}}}
+        }}
     }
 
 
@@ -43,14 +49,14 @@ def parameter_to_oas(param: click.Parameter):
     d = {
         'name': param.name,
         'in': 'query',
-        'schema': {'type': click_type_to_oas(param)}
+        'type': click_type_to_oas(param)
     }
     if hasattr(param, 'default') and param.default is not None:
         d['default'] = param.default
 
     if isinstance(param, click.Option):
-        if hasattr(param, 'help') and param.help:
-             d['description'] = param.help
+        if desc := getattr(param, 'help', ''):
+             d['description'] = desc
 
     return d
 
