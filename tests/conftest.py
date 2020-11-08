@@ -2,11 +2,26 @@ import shlex
 import click
 from click.testing import CliRunner
 import pytest
+import hypothesis
+import schemathesis
+
+from ._schemathesis import LazySchemaMethods
 
 
 @pytest.fixture
 def runner():
     return CliRunner()
+
+
+@pytest.fixture  # This is weird but needed to make schemathesis work.
+def self():
+    """This is needed to make schemathesis work while not making the instance
+    method look ridiculous.
+    """
+    return None
+
+
+schema = LazySchemaMethods('schema_fixture')
 
 
 class ClickCommandTestCase(object):
@@ -53,6 +68,11 @@ class ClickCommandTestCase(object):
     def app(self):
         return self._app
 
+    @pytest.fixture
+    def schema_fixture(self, app):
+        _schema = schemathesis.from_wsgi('/click_restful.json', app)
+        return _schema
+
     def test_io(self, subtests):
         for _enum, _route, _input, _output, _stdout in self._zipped:
             with subtests.test(msg=f'{self}:test_io:{_enum}', i=_enum):
@@ -73,3 +93,10 @@ class ClickCommandTestCase(object):
         for _enum, _route, _input, _output, _stdout in self._zipped:
             with subtests.test(msg=f'{self}:test_as_endpoint:{_enum}', i=_enum):
                 assert client.get(_route).status_code < 400
+
+    @pytest.mark.filterwarnings("ignore:^.*'subtests' fixture.*$")
+    @schema.parametrize()
+    @hypothesis.settings(deadline=None)
+    def test_api(self, case):
+        response = case.call_wsgi()
+        case.validate_response(response)

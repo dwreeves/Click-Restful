@@ -65,6 +65,3 @@ class TestBasicGroup(ClickCommandTestCase):
     inputs = ['initdb', 'dropdb']
     outputs = [None, None]
     stdouts = ['Initialized the database\n', 'Dropped the database\n']
-
-
-command_specs = [TestHelloWorld2]
